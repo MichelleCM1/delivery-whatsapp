@@ -1,18 +1,29 @@
 import { View, Text, Image} from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { PRODUCTS } from "@/utils/data/products";
-import { yellow } from "tailwindcss/colors";
 import React from "react";
 import { formatCurrency } from "@/utils/data/functions/format-currency";
 import { LinkButton } from "@/components/link-button";
 import { Button} from "@/components/button" 
+
+import { useCartStore } from "@/store/cart-store";
  
 export default function Product(){
+    const cartStore =useCartStore()
     const { id } = useLocalSearchParams()
+    const navigation = useNavigation()
 
     // Filtrar produto
     const product = PRODUCTS.filter((item) => item.id === id)[0]
+
+    function handleAddToCart(){
+        if(product){cartStore.add(product)
+            navigation.goBack()
+
+    }
+}
+    console.log(cartStore.products)
 
     return(
         <View className="flex-1 mt-5">
@@ -32,7 +43,7 @@ export default function Product(){
 
             </View>
             <View className="p-5 pb-8 gap-5">
-                <Button>
+                <Button onPress={handleAddToCart}>
                     <Button.Icon>
                         <Feather name="plus-circle" size={20}/>
                     </Button.Icon>
