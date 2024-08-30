@@ -13,7 +13,9 @@ import { ProductCartProps, useCartStore } from "@/store/cart-store";
 import { Feather } from "@expo/vector-icons";
 import { formatCurrency } from "@/utils/data/functions/format-currency";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
+import { useStripe } from '@stripe/stripe-react-native';
 import React from 'react';
+
 
 const PHONE_NUMBER = '5519999999999'
 
@@ -21,6 +23,7 @@ export default function Cart(){
     const [address, setAddress] = useState('')
     const cartStore = useCartStore()
     const navigation = useNavigation()
+    const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
     const isProducts = cartStore.products.length > 0
 
@@ -41,7 +44,7 @@ export default function Cart(){
         ])
     }
          
-    function handleOrder(){
+    async function handleOrder(){
         
         if (address.trim().length === 0){
             return Alert.alert('Pedido', 'Informe os dados da entrega')
@@ -60,16 +63,80 @@ export default function Cart(){
             \n Valor total: ${total}
 
         `
-        // console.log(message);
+        const isInitialized = await initializePaymentSheet();
 
-        Linking.openURL(
-         `http://api.whatsapp.com/send?phone=${PHONE_NUMBER}&text=${message}`   
-        )
+        if (isInitialized) {
+            await openPaymentSheet();
+        }
+        // Linking.openURL(
+        //  `http://api.whatsapp.com/send?phone=${PHONE_NUMBER}&text=${message}`   
+        // )
         
-        cartStore.clear()
-        navigation.goBack()
-
+        // cartStore.clear()
+        // navigation.goBack()
     }
+
+    async function initializePaymentSheet(){
+        const amountInCents = Math.round(
+            cartStore.products.reduce(
+                (total, product) => total + product.price * product.quantity, 0
+            ) * 100
+        );
+        try{
+            const response = await fetch('http://localhost:3000/payment-intent', {
+                method:'POST',
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body: JSON.stringify({
+                    amount:amountInCents,
+                })
+            })
+
+            const data = await response.json()
+
+            if (!response.ok){
+                throw new Error(data.error || 'Erro ao criar o PaymentIntent')
+            }
+
+            console.log(data.clientSecret);
+
+            const { clientSecret } = data;
+
+            if (typeof clientSecret !== 'string'){
+                console.error('clientSecret não é uma string: ', clientSecret)
+                return false
+            }
+
+            if (!clientSecret) {
+                console.error('clientSecret não retornada !!!')
+                return false;
+            }
+            const { error } = await initPaymentSheet({
+                paymentIntentClientSecret: clientSecret,
+                merchantDisplayName: 'Delivery whatsapp',
+                returnURL: '/',
+
+            })
+            if (error){
+                console.error('Erro ao inicializar o PaymentSheet: ', error)
+                return false
+            }
+            return true;
+
+        } catch (error) {
+            console.error('Error in initializePaymentSheet:', error)
+
+        }
+    }
+    async function openPaymentSheet() {
+        const { error } = await presentPaymentSheet();
+        if (error) {
+            Alert.alert(`Error code: ${error.code}`, error.message);
+
+        } else {Alert.alert('Sucesso', 'Seu pedido foi confirmado')}
+    }
+
 
 
     return(

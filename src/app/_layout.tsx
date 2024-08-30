@@ -1,19 +1,23 @@
-import { SafeAreaView } from "react-native"
+import { SafeAreaView } from 'react-native'
 import { Loading } from '@/components/loading'
-import { Slot } from "expo-router"
-import { useFonts, Poppins_600SemiBold,
-    Poppins_500Medium, 
-    Poppins_400Regular, 
-    Poppins_700Bold } from "@expo-google-fonts/poppins"
-import React from "react"
+import { Slot } from 'expo-router'
+import { StripeProvider } from '@stripe/stripe-react-native';
 
+import {
+    useFonts,
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold
+} from '@expo-google-fonts/poppins'
+import React from 'react';
 
 export default function Layout(){
-    const [fontsLoaded]= useFonts({
-        Poppins_600SemiBold, 
+    const [fontsLoaded] = useFonts({
+        Poppins_400Regular,
         Poppins_500Medium,
-         Poppins_400Regular, 
-         Poppins_700Bold
+        Poppins_600SemiBold,
+        Poppins_700Bold
     })
 
     if(!fontsLoaded){
@@ -21,9 +25,13 @@ export default function Layout(){
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-slate-900">
-            <Slot> </Slot>
-        </SafeAreaView>
-
+        <StripeProvider
+            publishableKey={process.env.STRIPE_PUBLIC_KEY || ''}
+        >
+            <SafeAreaView className="flex-1 bg-slate-900">
+                <Slot></Slot>
+            </SafeAreaView>
+        </StripeProvider>
     )
+
 }
